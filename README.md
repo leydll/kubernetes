@@ -389,3 +389,139 @@ kubectl delete services myservice
 kubectl delete deployment myservice
 ```
 
+# Configuration des fichiers YAML
+
+Ce dépôt contient les fichiers de configuration Kubernetes pour déployer et exposer des microservices via une Gateway Ingress.
+
+## Fichiers de configuration disponibles
+
+**Fichiers principaux (Gateway Ingress)**
+- `ingress.yml` : Configuration de la Gateway Ingress (point d'entrée unique)
+  - Route `myservice.info` → service `myservice`
+  - Route `myservice2.info` → service `myservice2`
+
+**Déploiements**
+- `myservice-deployment.yml` : Déploiement du service `myservice` (2 répliques)
+- `myservice2-deployment.yml` : Déploiement du service `myservice2` (2 répliques)
+
+**Services**
+- `myservice-service.yml` : Service NodePort pour `myservice` (port 80)
+- `myservice2-service.yml` : Service NodePort pour `myservice2` (port 80)
+
+**Communication entre microservices**
+- `front-back-app.yml` : Configuration pour communication frontend/backend
+
+## Utilisation
+
+### 1. Activer Ingress sur Minikube
+
+```
+minikube addons enable ingress
+minikube addons enable ingress-dns
+```
+
+Vérifier que l'Ingress Controller est actif :
+```
+kubectl get pods -n ingress-nginx
+```
+
+### 2. Déployer les services
+
+Déploiement myservice :
+```
+kubectl apply -f myservice-deployment.yml
+kubectl apply -f myservice-service.yml
+```
+
+Déploiement myservice2 :
+```
+kubectl apply -f myservice2-deployment.yml
+kubectl apply -f myservice2-service.yml
+```
+
+### 3. Déployer la Gateway Ingress
+
+```
+kubectl apply -f ingress.yml
+```
+
+Vérifier l'Ingress :
+```
+kubectl get ingress
+```
+
+### 4. Accéder aux services
+
+Sur macOS, démarrer le tunnel Minikube (dans un terminal séparé) :
+```
+minikube tunnel
+```
+
+Option 1 : Utiliser les URLs directement (avec ingress-dns activé)
+```
+curl http://myservice.info/
+curl http://myservice2.info/
+```
+
+Option 2 : Configurer le fichier /etc/hosts
+```
+sudo nano /etc/hosts
+```
+
+Ajouter :
+```
+127.0.0.1 myservice.info
+127.0.0.1 myservice2.info
+```
+
+Puis tester dans votre navigateur :
+- http://myservice.info/
+- http://myservice2.info/
+
+## Commandes de vérification
+
+Vérifier les déploiements :
+```
+kubectl get deployments
+```
+
+Vérifier les services :
+```
+kubectl get services
+```
+
+Vérifier les pods :
+```
+kubectl get pods
+```
+
+Vérifier l'Ingress :
+```
+kubectl get ingress
+kubectl describe ingress example-ingress
+```
+
+Voir les logs :
+```
+kubectl logs -l app=myservice
+kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller
+```
+
+## Nettoyage
+
+Pour supprimer toutes les ressources :
+```
+kubectl delete -f ingress.yml
+kubectl delete -f myservice2-service.yml
+kubectl delete -f myservice2-deployment.yml
+kubectl delete -f myservice-service.yml
+kubectl delete -f myservice-deployment.yml
+```
+
+## Notes importantes
+
+- Les services utilisent le type NodePort pour être accessibles via l'Ingress
+- La Gateway Ingress utilise NGINX comme contrôleur
+- Sur macOS, le tunnel Minikube doit être actif pour accéder aux services
+- Les ports sont configurés pour utiliser le port 80 (nginx par défaut)
+
